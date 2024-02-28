@@ -13,8 +13,14 @@ export default async function translate(
       Authorization: 'Bearer ' + options.apiKey,
     },
     body: JSON.stringify({
-      prompt: prompt,
-      model: options.openAIOptions.model,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a translation assistant that accepts text, and exclusively returns the same text in the provided locale.',
+        },
+        { role: 'user', content: prompt },
+      ],
       temperature: options.openAIOptions.temperature,
       max_tokens: options.openAIOptions.maxTokens,
       top_p: options.openAIOptions.topP,
@@ -22,7 +28,7 @@ export default async function translate(
   }
 
   const request = await fetch(
-    'https://api.openai.com/v1/completions',
+    'https://api.openai.com/v1/chat/completions',
     requestOptions,
   )
 
