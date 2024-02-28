@@ -37,7 +37,7 @@ export default async function translate(
   }
 
   const response = await request.json()
-  const text = response.choices[0].text as string
+  const text = response.choices[0].message.content as string
 
   return text.trim()
 }
