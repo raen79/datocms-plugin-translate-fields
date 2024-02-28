@@ -11,12 +11,15 @@ import {
 import ApiTextField from '../../components/ApiTextField/ApiTextField'
 import { OpenAIConfigFieldsFieldAddonConfigScreen } from '../../components/OpenAIConfigFields/OpenAIConfigFields'
 import GlossaryIdField from '../../components/GlossaryIdField/GlossaryIdField'
+import { useEffect, useState } from 'react'
 
 type Props = {
   ctx: RenderManualFieldExtensionConfigScreenCtx
 }
 
 export default function ConfigScreen({ ctx }: Props) {
+  const [locales, setLocales] = useState<string[]>([])
+
   const pluginParameters: Parameters = ctx.parameters
   const pluginGlobalParameters: GlobalParameters =
     ctx.plugin.attributes.parameters
@@ -25,6 +28,13 @@ export default function ConfigScreen({ ctx }: Props) {
     pluginParameters?.translationService ||
     pluginGlobalParameters?.translationService ||
     translationServiceOptions[0]
+
+  useEffect(() => {
+    ;(async () => {
+      const locales = (await ctx.getSettings()).site.attributes.locales
+      setLocales(locales)
+    })()
+  }, [ctx])
 
   return (
     <Canvas ctx={ctx}>
@@ -94,7 +104,10 @@ export default function ConfigScreen({ ctx }: Props) {
           )}
 
           {selectedTranslationService.value === TranslationService.openAI && (
-            <OpenAIConfigFieldsFieldAddonConfigScreen ctx={ctx} />
+            <OpenAIConfigFieldsFieldAddonConfigScreen
+              ctx={ctx}
+              locales={locales}
+            />
           )}
         </FieldGroup>
       </Form>

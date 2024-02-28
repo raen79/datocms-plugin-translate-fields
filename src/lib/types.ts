@@ -49,6 +49,7 @@ export enum OpenAIDefaultValues {
   temperature = 0,
   maxTokens = 100,
   topP = 0,
+  context = '',
 }
 
 export enum DeeplFormalityLevel {
@@ -59,12 +60,19 @@ export enum DeeplFormalityLevel {
   preferLess = 'prefer_less',
 }
 
+export type Currency = {
+  format: string
+  code: string
+}
+
 export type Parameters = {
   translationService?: SettingOption<TranslationService>
   model?: SettingOption<string>
   temperature?: number
   maxTokens?: number
   topP?: number
+  context?: string
+  currencies?: Record<string, Currency>
   deeplGlossaryId?: string
   deeplFormalityLevel?: SettingOption<DeeplFormalityLevel>
   [TranslationServiceKey.yandexKey]?: string
@@ -90,6 +98,7 @@ export type TranslationOptions = {
   format: TranslationFormat
   translationService: TranslationService
   apiKey: string
+  locales: string[]
   deeplOptions?: {
     glossaryId?: string
     formality?: DeeplFormalityLevel
@@ -99,6 +108,8 @@ export type TranslationOptions = {
     temperature: number
     maxTokens: number
     topP: number
+    context: string
+    currencies: Record<string, Currency>
   }
 }
 

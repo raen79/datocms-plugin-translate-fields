@@ -15,6 +15,7 @@ import {
   GlobalParameters,
   Models,
   SettingOption,
+  Currency,
 } from '../../lib/types'
 
 type OpenAIConfigFieldsProps = {
@@ -29,6 +30,9 @@ type OpenAIConfigFieldsProps = {
   temperature: number
   maxTokens: number
   topP: number
+  context: string
+  locales: string[]
+  currencies: Record<string, Currency>
 }
 
 function OpenAIConfigFields({
@@ -43,6 +47,9 @@ function OpenAIConfigFields({
   temperature,
   maxTokens,
   topP,
+  context,
+  locales,
+  currencies,
 }: OpenAIConfigFieldsProps) {
   if (error) {
     return (
@@ -77,6 +84,71 @@ function OpenAIConfigFields({
           ctx.notice('Settings updated successfully!')
         }}
       />
+
+      <TextField
+        name="context"
+        id="context"
+        label="Context"
+        hint="Give an explanation of the app that is being translated, including anything that should or should not be done within translations."
+        value={context}
+        onChange={(newValue) => {
+          updateParametersFn({
+            ...pluginParameters,
+            context: newValue?.toString(),
+          })
+          ctx.notice('Settings updated successfully!')
+        }}
+      />
+
+      {locales.map((locale) => (
+        <FieldGroup
+          style={{ flexDirection: 'row', display: 'flex', gap: 15 }}
+          key={locale}
+        >
+          <TextField
+            key={`${locale}-currency`}
+            name={`${locale}-currency`}
+            id={`${locale}-currency`}
+            label={`Currency Code (${locale})`}
+            hint="Provide the three letter code for the currency that should be used with this locale (e.g. GBP, EUR, AED)."
+            value={currencies[locale]?.code}
+            onChange={(newValue) => {
+              updateParametersFn({
+                ...pluginParameters,
+                currencies: {
+                  ...currencies,
+                  [locale]: {
+                    ...currencies[locale],
+                    code: newValue?.toString(),
+                  },
+                },
+              })
+              ctx.notice('Settings updated successfully!')
+            }}
+          />
+          <TextField
+            key={`${locale}-currency-format`}
+            name={`${locale}-currency-format`}
+            id={`${locale}-currency-format`}
+            label={`Currency Format (${locale})`}
+            hint="Provide the format for this currency (e.g. `€{{amount}}` for €15,000 or `{{amount}} OMR` for 15,000 OMR)."
+            value={currencies[locale]?.format}
+            onChange={(newValue) => {
+              updateParametersFn({
+                ...pluginParameters,
+                currencies: {
+                  ...currencies,
+                  [locale]: {
+                    ...currencies[locale],
+                    format: newValue?.toString(),
+                  },
+                },
+              })
+              ctx.notice('Settings updated successfully!')
+            }}
+          />
+        </FieldGroup>
+      ))}
 
       <TextField
         name="temperature"
@@ -147,10 +219,12 @@ function OpenAIConfigFields({
 
 type OpenAIConfigFieldsConfigScreenProps = {
   ctx: RenderConfigScreenCtx
+  locales: string[]
 }
 
 export function OpenAIConfigFieldsConfigScreen({
   ctx,
+  locales,
 }: OpenAIConfigFieldsConfigScreenProps) {
   const {
     options,
@@ -161,7 +235,9 @@ export function OpenAIConfigFieldsConfigScreen({
     temperature,
     maxTokens,
     topP,
-  } = useOpenAIConfigFields({ ctx })
+    context,
+    currencies,
+  } = useOpenAIConfigFields({ ctx, locales })
 
   const pluginParameters: GlobalParameters = ctx.plugin.attributes.parameters
 
@@ -178,21 +254,27 @@ export function OpenAIConfigFieldsConfigScreen({
       temperature={temperature}
       maxTokens={maxTokens}
       topP={topP}
+      context={context}
+      locales={locales}
+      currencies={currencies}
     />
   )
 }
 
 type OpenAIConfigFieldsFieldAddonConfigScreenProps = {
   ctx: RenderManualFieldExtensionConfigScreenCtx
+  locales: string[]
 }
 
 export function OpenAIConfigFieldsFieldAddonConfigScreen({
   ctx,
+  locales,
 }: OpenAIConfigFieldsFieldAddonConfigScreenProps) {
-  const configFields = useOpenAIConfigFields({ ctx })
+  const configFields = useOpenAIConfigFields({ ctx, locales })
 
   const { options, models, openAIApiKey, error } = configFields
-  let { selectedModel, temperature, maxTokens, topP } = configFields
+  let { selectedModel, temperature, maxTokens, topP, context, currencies } =
+    configFields
 
   const pluginParameters: Parameters = ctx.parameters
 
@@ -200,6 +282,7 @@ export function OpenAIConfigFieldsFieldAddonConfigScreen({
   temperature = pluginParameters.temperature ?? temperature
   maxTokens = pluginParameters.maxTokens ?? maxTokens
   topP = pluginParameters.topP ?? topP
+  context = pluginParameters.context ?? context
 
   return (
     <OpenAIConfigFields
@@ -214,6 +297,9 @@ export function OpenAIConfigFieldsFieldAddonConfigScreen({
       temperature={temperature}
       maxTokens={maxTokens}
       topP={topP}
+      context={context}
+      currencies={currencies}
+      locales={locales}
     />
   )
 }

@@ -75,10 +75,28 @@ export default function FieldAddon({ ctx }: Props) {
     pluginGlobalParameters.maxTokens ??
     OpenAIDefaultValues.maxTokens
 
+  const context =
+    pluginParameters.context ??
+    pluginGlobalParameters.context ??
+    OpenAIDefaultValues.context
+
   const topP =
     pluginParameters.topP ??
     pluginGlobalParameters.topP ??
     OpenAIDefaultValues.topP
+
+  const locales: string[] = ctx.formValues.internalLocales as string[]
+
+  const currencies =
+    pluginParameters.currencies ??
+    pluginGlobalParameters.currencies ??
+    locales.reduce(
+      (previousCurrencies, locale) => ({
+        ...previousCurrencies,
+        [locale]: { code: 'EUR', format: '€{{amount}}' },
+      }),
+      {},
+    )
 
   const deeplGlossaryId =
     pluginParameters.deeplGlossaryId || pluginGlobalParameters.deeplGlossaryId
@@ -89,7 +107,6 @@ export default function FieldAddon({ ctx }: Props) {
 
   const fieldValue: any = get(ctx.formValues, ctx.fieldPath)
   const currentLocale: string = ctx.locale
-  const locales: string[] = ctx.formValues.internalLocales as string[]
   const editor: Editor = ctx.field.attributes.appearance?.editor as Editor
   const isDefaultLocale: boolean = currentLocale === locales[0]
   const translationFormat: TranslationFormat = translationFormats[editor]
@@ -104,7 +121,11 @@ export default function FieldAddon({ ctx }: Props) {
     }
   }, [translationApiKey, translationService, useMock])
 
-  async function translateField(languages: string[], fromLocale?: string) {
+  async function translateField(
+    languages: string[],
+    fromLocale?: string,
+    convertCurrency: boolean = false,
+  ) {
     let translatableField = fieldValue
     const [fieldPath]: string[] = ctx.fieldPath.split(/\.(?=[^.]+$)/)
     if (fromLocale) {
@@ -118,88 +139,109 @@ export default function FieldAddon({ ctx }: Props) {
         editor: editor,
       })
     ) {
-      for (const locale of languages) {
-        let translatedField
-        const options: TranslationOptions = {
-          fromLocale: getSupportedFromLocale(
-            fromLocale || locales[0],
-            translationServiceValue,
-          ),
-          toLocale: getSupportedToLocale(locale, translationServiceValue),
-          format: translationFormat,
-          translationService: translationServiceValue,
-          apiKey: translationApiKey,
-          deeplOptions: {
-            glossaryId: deeplGlossaryId,
-            formality: deeplFormalityLevelValue,
-          },
-          openAIOptions: {
-            model: modelValue,
-            temperature,
-            maxTokens,
-            topP,
-          },
-        }
+      setIsTranslating(true)
 
-        try {
-          setIsTranslating(true)
-          switch (translationFormat) {
-            case TranslationFormat.structuredText: {
-              translatedField = await getStructuredTextTranslation(
-                translatableField,
-                options,
-              )
-              break
-            }
-            case TranslationFormat.html: {
-              translatedField = await getHtmlTranslation(
-                translatableField,
-                options,
-              )
-              break
-            }
-            case TranslationFormat.markdown: {
-              translatedField = await getMarkdownTranslation(
-                translatableField,
-                options,
-              )
-              break
-            }
-            case TranslationFormat.seo: {
-              translatedField = await getSeoTranslation(
-                translatableField,
-                options,
-              )
-              break
-            }
-            case TranslationFormat.richText: {
-              translatedField = await getRichTextTranslation(
-                translatableField,
-                options,
-              )
-              break
-            }
-            case TranslationFormat.slug: {
-              translatedField = await getSlugTranslation(
-                translatableField,
-                options,
-              )
-              break
-            }
-            default: {
-              translatedField = await getTranslation(translatableField, options)
-              break
-            }
+      await Promise.all(
+        languages.map(async (locale) => {
+          let translatedField
+          const options: TranslationOptions = {
+            fromLocale: getSupportedFromLocale(
+              fromLocale || locales[0],
+              translationServiceValue,
+            ),
+            toLocale: getSupportedToLocale(locale, translationServiceValue),
+            format: translationFormat,
+            translationService: translationServiceValue,
+            apiKey: translationApiKey,
+            locales,
+            deeplOptions: {
+              glossaryId: deeplGlossaryId,
+              formality: deeplFormalityLevelValue,
+            },
+            openAIOptions: {
+              model: modelValue,
+              temperature,
+              maxTokens,
+              topP,
+              context,
+              currencies,
+            },
           }
 
-          ctx.setFieldValue(`${fieldPath}.${locale}`, translatedField)
-        } catch (error: any) {
-          setHasError(error.message)
-        } finally {
-          setIsTranslating(false)
-        }
-      }
+          try {
+            switch (translationFormat) {
+              case TranslationFormat.structuredText: {
+                translatedField = await getStructuredTextTranslation(
+                  translatableField,
+                  options,
+                  ctx,
+                  convertCurrency,
+                )
+                break
+              }
+              case TranslationFormat.html: {
+                translatedField = await getHtmlTranslation(
+                  translatableField,
+                  options,
+                  convertCurrency,
+                )
+                break
+              }
+              case TranslationFormat.markdown: {
+                translatedField = await getMarkdownTranslation(
+                  translatableField,
+                  options,
+                  convertCurrency,
+                )
+                break
+              }
+              case TranslationFormat.seo: {
+                translatedField = await getSeoTranslation(
+                  translatableField,
+                  options,
+                  convertCurrency,
+                )
+                break
+              }
+              case TranslationFormat.richText: {
+                translatedField = await getRichTextTranslation(
+                  translatableField,
+                  options,
+                  ctx,
+                  convertCurrency,
+                )
+                break
+              }
+              case TranslationFormat.slug: {
+                translatedField = await getSlugTranslation(
+                  translatableField,
+                  options,
+                  convertCurrency,
+                )
+                break
+              }
+              default: {
+                translatedField = await getTranslation(
+                  translatableField,
+                  options,
+                  options.openAIOptions.context,
+                  convertCurrency,
+                )
+                break
+              }
+            }
+
+            ctx.setFieldValue(`${fieldPath}.${locale}`, translatedField)
+          } catch (error: any) {
+            setHasError(error.message)
+          } finally {
+          }
+        }),
+      )
+      setIsTranslating(false)
     } else {
+      setIsTranslating(false)
+
       setHasError(
         `Please add content to the default field (${fromLocale || locales[0]})`,
       )
@@ -259,21 +301,41 @@ export default function FieldAddon({ ctx }: Props) {
 
   return (
     <Canvas ctx={ctx}>
-      <Form
-        onSubmit={() =>
-          translateField(locales.filter((locale) => locale !== currentLocale))
-        }
-      >
-        <Button
-          buttonSize="xxs"
-          type="submit"
-          rightIcon={isTranslating ? <Spinner size={24} /> : null}
-          disabled={isTranslating}
+      <div style={{ display: 'flex', flexDirection: 'row', gap: 15 }}>
+        <Form
+          onSubmit={() =>
+            translateField(
+              locales.filter((locale) => locale !== currentLocale),
+              'en',
+              true,
+            )
+          }
         >
-          Translate to all locales (
-          {locales.filter((locale) => locale !== currentLocale).join(', ')})
-        </Button>
-      </Form>
+          <Button
+            buttonSize="xxs"
+            type="submit"
+            rightIcon={isTranslating ? <Spinner size={24} /> : null}
+            disabled={isTranslating}
+          >
+            Translate to all locales and convert currencies
+          </Button>
+        </Form>
+
+        <Form
+          onSubmit={() =>
+            translateField(locales.filter((locale) => locale !== currentLocale))
+          }
+        >
+          <Button
+            buttonSize="xxs"
+            type="submit"
+            rightIcon={isTranslating ? <Spinner size={24} /> : null}
+            disabled={isTranslating}
+          >
+            Translate to all locales
+          </Button>
+        </Form>
+      </div>
     </Canvas>
   )
 }

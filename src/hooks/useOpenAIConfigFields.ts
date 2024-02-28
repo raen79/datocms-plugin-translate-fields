@@ -33,8 +33,10 @@ function getDefaultModel({
 
 export function useOpenAIConfigFields({
   ctx,
+  locales,
 }: {
   ctx: RenderConfigScreenCtx | RenderManualFieldExtensionConfigScreenCtx
+  locales: string[]
 }) {
   const [models, setModels] = useState<Models | null>(null)
   const [error, setError] = useState<string>('')
@@ -60,8 +62,18 @@ export function useOpenAIConfigFields({
 
   const temperature =
     pluginParameters.temperature ?? OpenAIDefaultValues.temperature
+  const context = pluginParameters.context ?? OpenAIDefaultValues.context
   const maxTokens = pluginParameters.maxTokens ?? OpenAIDefaultValues.maxTokens
   const topP = pluginParameters.topP ?? OpenAIDefaultValues.topP
+  const currencies =
+    pluginParameters.currencies ??
+    locales.reduce(
+      (previousCurrencies, locale) => ({
+        ...previousCurrencies,
+        [locale]: { code: 'EUR', format: '€{{amount}}' },
+      }),
+      {},
+    )
 
   useEffect(() => {
     if (openAIApiKey) {
@@ -97,5 +109,7 @@ export function useOpenAIConfigFields({
     temperature,
     maxTokens,
     topP,
+    context,
+    currencies,
   }
 }

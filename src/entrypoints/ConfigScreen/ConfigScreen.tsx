@@ -18,12 +18,15 @@ import ApiTextField from '../../components/ApiTextField/ApiTextField'
 import { OpenAIConfigFieldsConfigScreen } from '../../components/OpenAIConfigFields/OpenAIConfigFields'
 import GlossaryIdField from '../../components/GlossaryIdField/GlossaryIdField'
 import FormalityField from '../../components/FormalityField/FormalityField'
+import { useEffect, useState } from 'react'
 
 type Props = {
   ctx: RenderConfigScreenCtx
 }
 
 export default function ConfigScreen({ ctx }: Props) {
+  const [locales, setLocales] = useState<string[]>([])
+
   const pluginParameters: GlobalParameters = ctx.plugin.attributes.parameters
   const selectedTranslationService =
     pluginParameters?.translationService || translationServiceOptions[0]
@@ -33,6 +36,13 @@ export default function ConfigScreen({ ctx }: Props) {
   const isDeepl =
     selectedTranslationService.value === TranslationService.deepl ||
     selectedTranslationService.value === TranslationService.deeplFree
+
+  useEffect(() => {
+    ;(async () => {
+      const locales = (await ctx.getSettings()).site.attributes.locales
+      setLocales(locales)
+    })()
+  }, [ctx])
 
   return (
     <Canvas ctx={ctx}>
@@ -143,7 +153,7 @@ export default function ConfigScreen({ ctx }: Props) {
             )}
 
             {selectedTranslationService.value === TranslationService.openAI && (
-              <OpenAIConfigFieldsConfigScreen ctx={ctx} />
+              <OpenAIConfigFieldsConfigScreen ctx={ctx} locales={locales} />
             )}
           </FieldGroup>
         )}
