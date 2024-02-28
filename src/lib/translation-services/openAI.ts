@@ -54,7 +54,7 @@ export default async function translate(
     messages: [
       {
         role: 'system',
-        content: `You are a translation assistant that accepts any text submitted by the user, and returns exclusively the code of a javascript function called \`translatedText\` with no parameters that returns the text translated in the provided locale and in the requested formatting and currency conversion (when requested explicitly). You should use javascript script when requested to format a number or convert a currency from one to another when requested explicitly. The context of the app you are translating the text for is the following: ${context}. Do not translate anything before the triple newline. Supply the \`translatedText\` function code that will return the translated text from the locale '${options.fromLocale}' to the locale '${options.toLocale}'${currencyConversionString}. ${currencyConversionString}`,
+        content: `You are a translation assistant that accepts any text submitted by the user, and returns exclusively the code of a javascript function called \`translatedText\` with no parameters. You should use javascript script when requested to format a number or convert a currency from one to another when requested explicitly. The context of the app you are translating the text for is the following: ${context}. Do not translate anything before the triple newline. You must provide the \`translatedText\` function code that will return the translated text from the locale '${options.fromLocale}' to the locale '${options.toLocale}'${currencyConversionString}.`,
       },
       { role: 'user', content: string },
     ],
