@@ -11,16 +11,16 @@ export default async function translate(
 ): Promise<string> {
   const fxRatesRequest = await (async () => {
     try {
-      const date = moment().utc().format('YYYY-MM-DD')
+      const date = moment().utc().format('YYYY.M.D')
 
       return await axios.get(
-        `https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/${date}/currencies/eur.json`,
+        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/eur.json`,
       )
     } catch {
-      const date = moment().utc().format('YYYY-MM-DD')
+      const date = moment().utc().format('YYYY.M.D')
 
       return await axios.get(
-        `https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/eur.json?date=${date}`,
+        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json?date=${date}`,
       )
     }
   })()
