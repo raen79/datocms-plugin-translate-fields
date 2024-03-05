@@ -184,6 +184,7 @@ export default function FieldAddon({ ctx }: Props) {
                   translatableField,
                   options,
                   convertCurrency,
+                  ctx,
                 )
                 break
               }
@@ -192,6 +193,7 @@ export default function FieldAddon({ ctx }: Props) {
                   translatableField,
                   options,
                   convertCurrency,
+                  ctx,
                 )
                 break
               }
@@ -200,6 +202,7 @@ export default function FieldAddon({ ctx }: Props) {
                   translatableField,
                   options,
                   convertCurrency,
+                  ctx,
                 )
                 break
               }
@@ -217,6 +220,7 @@ export default function FieldAddon({ ctx }: Props) {
                   translatableField,
                   options,
                   convertCurrency,
+                  ctx,
                 )
                 break
               }
@@ -226,6 +230,7 @@ export default function FieldAddon({ ctx }: Props) {
                   options,
                   options.openAIOptions.context,
                   convertCurrency,
+                  ctx,
                 )
                 break
               }

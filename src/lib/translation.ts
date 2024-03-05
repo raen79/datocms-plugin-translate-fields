@@ -18,6 +18,7 @@ export async function getTranslation(
   options: TranslationOptions,
   context: string,
   convertCurrency: boolean,
+  ctx: RenderFieldExtensionCtx,
 ): Promise<string> {
   switch (options.translationService) {
     case TranslationService.mock: {
@@ -31,7 +32,7 @@ export async function getTranslation(
       return deeplTranslate(string, options)
     }
     case TranslationService.openAI: {
-      return openAITranslate(string, options, context, convertCurrency)
+      return openAITranslate(string, options, context, convertCurrency, ctx)
     }
     default: {
       throw new Error('No translation service added in the settings')
@@ -56,7 +57,6 @@ export async function getRichTextTranslation(
       const field = Object.values(ctx.fields).find(
         (field) => field?.attributes.api_key === path.key,
       )
-
       const isSelectField = 'enum' in (field?.attributes.validators ?? {})
 
       if (isSelectField) {
@@ -76,6 +76,7 @@ export async function getRichTextTranslation(
             options,
             options.openAIOptions.context,
             convertCurrency,
+            ctx,
           )
           set(translatedArray, currentPath, translatedString)
         }
@@ -89,6 +90,7 @@ export async function getRichTextTranslation(
             currentString,
             options,
             convertCurrency,
+            ctx,
           )
           set(translatedArray, currentPath, translatedString)
         }
@@ -102,6 +104,7 @@ export async function getRichTextTranslation(
             currentString,
             options,
             convertCurrency,
+            ctx,
           )
           set(translatedArray, currentPath, translatedString)
         }
@@ -147,6 +150,7 @@ export async function getRichTextTranslation(
             currentValue,
             options,
             convertCurrency,
+            ctx,
           )
           set(translatedArray, currentPath, translatedString)
         }
@@ -161,6 +165,7 @@ export async function getSeoTranslation(
   value: any,
   options: TranslationOptions,
   convertCurrency: boolean,
+  ctx: RenderFieldExtensionCtx,
 ): Promise<any> {
   return {
     title: value.title
@@ -169,6 +174,7 @@ export async function getSeoTranslation(
           options,
           options.openAIOptions.context,
           convertCurrency,
+          ctx,
         )
       : '',
     description: value.description
@@ -177,6 +183,7 @@ export async function getSeoTranslation(
           options,
           options.openAIOptions.context,
           convertCurrency,
+          ctx,
         )
       : '',
     image: value?.image,
@@ -208,6 +215,7 @@ export async function getStructuredTextTranslation(
             options,
             options.openAIOptions.context,
             convertCurrency,
+            ctx,
           )
           set(translatedArray, currentPath, translatedString)
         }
@@ -254,6 +262,7 @@ export async function getHtmlTranslation(
   string: string,
   options: TranslationOptions,
   convertCurrency: boolean,
+  ctx: RenderFieldExtensionCtx,
 ): Promise<string> {
   const json = parseHtml.html2json(string)
   const allPaths: Path[] = paths(json.child)
@@ -269,6 +278,7 @@ export async function getHtmlTranslation(
           options,
           options.openAIOptions.context,
           convertCurrency,
+          ctx,
         )
         set(translatedArray, currentPath, translatedString)
       }
@@ -283,6 +293,7 @@ export async function getMarkdownTranslation(
   string: string,
   options: TranslationOptions,
   convertCurrency: boolean,
+  ctx: RenderFieldExtensionCtx,
 ): Promise<string> {
   const json = fromMarkdown(string)
   const allPaths: Path[] = paths(json.children)
@@ -298,6 +309,7 @@ export async function getMarkdownTranslation(
           options,
           options.openAIOptions.context,
           convertCurrency,
+          ctx,
         )
         set(translatedArray, currentPath, translatedString)
       }
@@ -312,6 +324,7 @@ export async function getSlugTranslation(
   string: string,
   options: TranslationOptions,
   convertCurrency: boolean,
+  ctx: RenderFieldExtensionCtx,
 ): Promise<string> {
   const deSlugifiedString = string.replace(/-/g, ' ')
 
@@ -320,6 +333,7 @@ export async function getSlugTranslation(
     options,
     options.openAIOptions.context,
     convertCurrency,
+    ctx,
   )
   return slugify(translatedString, {
     lower: true,
