@@ -114,13 +114,15 @@ export async function getRichTextTranslation(
 
       if (path.type === PathType.structured_text) {
         const currentPath = path.path
-        const currentArray = get(translatedArray, currentPath)
-        if (currentArray) {
-          const translatedString = await getStructuredTextTranslation(
-            currentArray,
+        const currentString = get(translatedArray, currentPath)
+        console.warn(currentString)
+        if (currentString) {
+          const translatedString = await getTranslation(
+            currentString,
             options,
-            ctx,
+            options.openAIOptions.context,
             convertCurrency,
+            ctx,
           )
           set(translatedArray, currentPath, translatedString)
         }
