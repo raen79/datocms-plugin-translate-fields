@@ -99,6 +99,7 @@ export async function getRichTextTranslation(
       if (path.type === PathType.markdown) {
         const currentPath = path.path
         const currentString = get(translatedArray, currentPath)
+        console.warn(currentString)
         if (currentString) {
           const translatedString = await getTranslation(
             currentString,
