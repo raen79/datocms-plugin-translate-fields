@@ -100,9 +100,10 @@ export async function getRichTextTranslation(
         const currentPath = path.path
         const currentString = get(translatedArray, currentPath)
         if (currentString) {
-          const translatedString = await getMarkdownTranslation(
+          const translatedString = await getTranslation(
             currentString,
             options,
+            options.openAIOptions.context,
             convertCurrency,
             ctx,
           )
