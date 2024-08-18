@@ -6,7 +6,6 @@ import { Canvas, Form, Button, Spinner } from 'datocms-react-ui'
 import {
   getTranslation,
   getStructuredTextTranslation,
-  getMarkdownTranslation,
   getRichTextTranslation,
   getHtmlTranslation,
   getSeoTranslation,
@@ -189,9 +188,10 @@ export default function FieldAddon({ ctx }: Props) {
                 break
               }
               case TranslationFormat.markdown: {
-                translatedField = await getMarkdownTranslation(
+                translatedField = await getTranslation(
                   translatableField,
                   options,
+                  options.openAIOptions.context,
                   convertCurrency,
                   ctx,
                 )
