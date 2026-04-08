@@ -10,6 +10,10 @@ function usesMaxCompletionTokens(model: string): boolean {
   )
 }
 
+function getValidTopP(topP: number): number | undefined {
+  return topP > 0 && topP <= 1 ? topP : undefined
+}
+
 function parseTranslationResponse(content: string | null): string {
   if (!content) {
     throw new Error('OpenAI returned an empty translation response.')
@@ -138,7 +142,6 @@ export default async function translate(
   const completionRequest: any = {
     model: options.openAIOptions.model,
     temperature: options.openAIOptions.temperature,
-    top_p: options.openAIOptions.topP,
     response_format: { type: 'json_object' },
     messages: [
       {
@@ -147,6 +150,12 @@ export default async function translate(
       },
       { role: 'user', content: string },
     ],
+  }
+
+  const topP = getValidTopP(options.openAIOptions.topP)
+
+  if (topP !== undefined) {
+    completionRequest.top_p = topP
   }
 
   if (usesMaxCompletionTokens(options.openAIOptions.model)) {

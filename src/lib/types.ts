@@ -48,7 +48,7 @@ export enum OpenAIDefaultValues {
   model = 'text-davinci-003',
   temperature = 0,
   maxTokens = 100,
-  topP = 0,
+  topP = 1,
   context = '',
 }
 
