@@ -4,59 +4,35 @@ import axios from 'axios'
 import OpenAI from 'openai'
 import { RenderFieldExtensionCtx } from 'datocms-plugin-sdk'
 
-function extractExecutableCode(response: string): string | null {
-  const trimmedResponse = response.trim()
-
-  if (!trimmedResponse) {
-    return null
+function parseTranslationResponse(content: string | null): string {
+  if (!content) {
+    throw new Error('OpenAI returned an empty translation response.')
   }
 
-  const fencedCodeMatch = trimmedResponse.match(
-    /```(?:javascript|js)?\s*([\s\S]*?)```/i,
+  const trimmedContent = content.trim()
+
+  if (!trimmedContent) {
+    throw new Error('OpenAI returned an empty translation response.')
+  }
+
+  const normalizedContent = trimmedContent.replace(
+    /^```(?:json)?\s*([\s\S]*?)\s*```$/i,
+    '$1',
   )
 
-  if (fencedCodeMatch?.[1]) {
-    return fencedCodeMatch[1].trim()
-  }
+  try {
+    const parsedContent = JSON.parse(normalizedContent)
 
-  if (/translatedText\s*[(:=]/.test(trimmedResponse)) {
-    return trimmedResponse
-  }
+    if (
+      parsedContent &&
+      typeof parsedContent === 'object' &&
+      typeof parsedContent.translation === 'string'
+    ) {
+      return parsedContent.translation
+    }
+  } catch {}
 
-  return null
-}
-
-function extractPlainTextTranslation(response: string): string | null {
-  const trimmedResponse = response.trim()
-
-  if (!trimmedResponse) {
-    return null
-  }
-
-  const quotedResponseMatch = trimmedResponse.match(/^(['"`])([\s\S]*)\1$/)
-
-  if (quotedResponseMatch?.[2]) {
-    return quotedResponseMatch[2].trim()
-  }
-
-  return trimmedResponse
-}
-
-function resolveTranslationResponse(response: string): string {
-  const executableCode = extractExecutableCode(response)
-
-  if (executableCode) {
-    // eslint-disable-next-line no-eval
-    return String(eval(`${executableCode}\ntranslatedText();`))
-  }
-
-  const plainTextTranslation = extractPlainTextTranslation(response)
-
-  if (plainTextTranslation) {
-    return plainTextTranslation
-  }
-
-  throw new Error('OpenAI did not return a valid translation response.')
+  return normalizedContent
 }
 
 function cleanObject(
@@ -153,38 +129,28 @@ export default async function translate(
     dangerouslyAllowBrowser: true,
   })
 
-  const stream = openai.beta.chat.completions.stream({
+  const completion = await openai.chat.completions.create({
     model: options.openAIOptions.model,
     temperature: options.openAIOptions.temperature,
     max_tokens: options.openAIOptions.maxTokens,
     top_p: options.openAIOptions.topP,
+    response_format: { type: 'json_object' },
     messages: [
       {
         role: 'system',
-        content: `You are a translation assistant that accepts any text submitted by the user with double quotes around it, and returns exclusively the code of a javascript function called \`translatedText\` with no parameters. You should use javascript script when requested to format a number or convert a currency from one to another when requested explicitly. The context of the app you are translating the text for is the following: \`\`${context}\`\`. You must provide the \`translatedText\` function code that will return the translated text from the locale '${options.fromLocale}' to the locale '${options.toLocale}'. The name of the field you are translating is: ${fieldName} within this record: \`\`${wholeRecordContext}\`\`${currencyConversionString}. You even translate single words inputted by the user. You never translate a URL, just return it back to the user.`,
+        content: `You are a translation assistant. Return only valid JSON with a single string property named "translation". Translate the user's text from the locale '${options.fromLocale}' to the locale '${options.toLocale}'. The context of the app you are translating for is: \`\`${context}\`\`. The field being translated is "${fieldName}" within this record: \`\`${wholeRecordContext}\`\`${currencyConversionString} When converting currencies, directly return the final converted text in the "translation" value. You even translate single words. Never translate a URL; return it unchanged. Do not include markdown, code fences, or any properties other than "translation".`,
       },
-      { role: 'user', content: `"${string}"` },
+      { role: 'user', content: string },
     ],
   })
-
-  let code = ''
 
   console.warn(wholeRecordContext)
 
   try {
-    for await (const part of stream) {
-      const content = part.choices[0]?.delta?.content
-
-      if (typeof content === 'string') {
-        code += content
-      }
-    }
-
-    return resolveTranslationResponse(code)
+    return parseTranslationResponse(completion.choices[0]?.message?.content)
   } catch (error) {
     console.error(string)
-    console.error(code)
-    console.error(extractExecutableCode(code))
+    console.error(completion.choices[0]?.message?.content)
     throw error
   }
 }
