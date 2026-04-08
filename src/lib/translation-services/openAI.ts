@@ -4,6 +4,12 @@ import axios from 'axios'
 import OpenAI from 'openai'
 import { RenderFieldExtensionCtx } from 'datocms-plugin-sdk'
 
+function usesMaxCompletionTokens(model: string): boolean {
+  return /^(gpt-5($|[.-])|chatgpt-5($|[.-])|o1($|[-])|o3($|[-])|o4($|[-]))/i.test(
+    model,
+  )
+}
+
 function parseTranslationResponse(content: string | null): string {
   if (!content) {
     throw new Error('OpenAI returned an empty translation response.')
@@ -129,10 +135,9 @@ export default async function translate(
     dangerouslyAllowBrowser: true,
   })
 
-  const completion = await openai.chat.completions.create({
+  const completionRequest: any = {
     model: options.openAIOptions.model,
     temperature: options.openAIOptions.temperature,
-    max_tokens: options.openAIOptions.maxTokens,
     top_p: options.openAIOptions.topP,
     response_format: { type: 'json_object' },
     messages: [
@@ -142,7 +147,15 @@ export default async function translate(
       },
       { role: 'user', content: string },
     ],
-  })
+  }
+
+  if (usesMaxCompletionTokens(options.openAIOptions.model)) {
+    completionRequest.max_completion_tokens = options.openAIOptions.maxTokens
+  } else {
+    completionRequest.max_tokens = options.openAIOptions.maxTokens
+  }
+
+  const completion = await openai.chat.completions.create(completionRequest)
 
   console.warn(wholeRecordContext)
 
