@@ -4,6 +4,61 @@ import axios from 'axios'
 import OpenAI from 'openai'
 import { RenderFieldExtensionCtx } from 'datocms-plugin-sdk'
 
+function extractExecutableCode(response: string): string | null {
+  const trimmedResponse = response.trim()
+
+  if (!trimmedResponse) {
+    return null
+  }
+
+  const fencedCodeMatch = trimmedResponse.match(
+    /```(?:javascript|js)?\s*([\s\S]*?)```/i,
+  )
+
+  if (fencedCodeMatch?.[1]) {
+    return fencedCodeMatch[1].trim()
+  }
+
+  if (/translatedText\s*[(:=]/.test(trimmedResponse)) {
+    return trimmedResponse
+  }
+
+  return null
+}
+
+function extractPlainTextTranslation(response: string): string | null {
+  const trimmedResponse = response.trim()
+
+  if (!trimmedResponse) {
+    return null
+  }
+
+  const quotedResponseMatch = trimmedResponse.match(/^(['"`])([\s\S]*)\1$/)
+
+  if (quotedResponseMatch?.[2]) {
+    return quotedResponseMatch[2].trim()
+  }
+
+  return trimmedResponse
+}
+
+function resolveTranslationResponse(response: string): string {
+  const executableCode = extractExecutableCode(response)
+
+  if (executableCode) {
+    // eslint-disable-next-line no-eval
+    return String(eval(`${executableCode}\ntranslatedText();`))
+  }
+
+  const plainTextTranslation = extractPlainTextTranslation(response)
+
+  if (plainTextTranslation) {
+    return plainTextTranslation
+  }
+
+  throw new Error('OpenAI did not return a valid translation response.')
+}
+
 function cleanObject(
   obj: { [key: string]: any },
   keysToRemove = [],
@@ -118,19 +173,18 @@ export default async function translate(
 
   try {
     for await (const part of stream) {
-      code += part.choices[0]?.delta?.content
+      const content = part.choices[0]?.delta?.content
+
+      if (typeof content === 'string') {
+        code += content
+      }
     }
 
-    // eslint-disable-next-line no-eval
-    return eval(
-      code.split('```')[1].replace('javascript', '') + '\ntranslatedText();',
-    )
+    return resolveTranslationResponse(code)
   } catch (error) {
     console.error(string)
     console.error(code)
-    console.error(
-      code.split('```')[1].replace('javascript', '') + '\ntranslatedText();',
-    )
+    console.error(extractExecutableCode(code))
     throw error
   }
 }
